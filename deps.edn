@@ -1,7 +1,10 @@
 {:paths   ["src"]
  :deps    {org.clojure/clojure        {:mvn/version "1.10.2-rc2"}
            com.stuartsierra/component {:mvn/version "1.0.0"}}
- :aliases {:dev {:extra-deps {aleph/aleph         {:mvn/version "0.4.7-alpha7"}
-                              metosin/reitit-core {:mvn/version "0.5.10"}
-                              metosin/reitit-ring {:mvn/version "0.5.10"}
-                              metosin/reitit-http {:mvn/version "0.5.10"}}}}}
+ :aliases {:dev {:extra-deps {aleph/aleph                 {:mvn/version "0.4.7-alpha7"}
+                              metosin/reitit-core         {:mvn/version "0.5.10"}
+                              metosin/reitit-ring         {:mvn/version "0.5.10"}
+                              metosin/reitit-http         {:mvn/version "0.5.10"}
+                              hikari-cp/hikari-cp         {:mvn/version "2.13.0"}
+                              net.ttddyy/datasource-proxy {:mvn/version "1.7"}
+                              com.taoensso/timbre         {:mvn/version "5.1.0"}}}}}

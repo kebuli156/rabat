@@ -1,6 +1,7 @@
 (ns rabat.components.reitit
   (:require
    [rabat.edge.ring :as rbt.edge.ring]
+   [rabat.util.components :as rbt.u.c]
    [reitit.http :as reit.http]
    [reitit.ring :as reit.ring]))
 
@@ -29,19 +30,16 @@
 (defn- get-ring-options
   [m k]
   (or (get m k)
-      (->> (vals m)
-           (filter #(satisfies? rbt.edge.ring/ReititRingOptions %))
-           (first))))
+      (rbt.u.c/get-satisfied m rbt.edge.ring/ReititRingOptions)))
 
 (defrecord RingRouter []
   rbt.edge.ring/ReititRingRouter
   (reitit-request-router [this]
     (let [routes  (into []
-                        (comp
-                          (map val)
-                          (filter #(satisfies? rbt.edge.ring/ReititRingRoutes %))
-                          (map rbt.edge.ring/reitit-request-routes))
-                        this)
+                       (comp
+                         (rbt.u.c/xcollect rbt.edge.ring/ReititRingRoutes)
+                         (map rbt.edge.ring/reitit-request-routes))
+                       this)
           options (some-> this
                           (get-ring-options :options)
                           (rbt.edge.ring/reitit-request-options))
@@ -61,16 +59,12 @@
 (defn- get-ring-router
   [m k]
   (or (get m k)
-      (->> (vals m)
-           (filter #(satisfies? rbt.edge.ring/ReititRingRouter %))
-           (first))))
+      (rbt.u.c/get-satisfied m rbt.edge.ring/ReititRingRouter)))
 
 (defn- get-ring-handler
   [m k]
   (or (get m k)
-      (->> (vals m)
-           (filter #(satisfies? rbt.edge.ring/RingHandler %))
-           (first))))
+      (rbt.u.c/get-satisfied m rbt.edge.ring/RingHandler)))
 
 (defrecord RingHandler []
   rbt.edge.ring/RingHandler
