@@ -7,4 +7,6 @@
                               metosin/reitit-http         {:mvn/version "0.5.10"}
                               hikari-cp/hikari-cp         {:mvn/version "2.13.0"}
                               net.ttddyy/datasource-proxy {:mvn/version "1.7"}
-                              com.taoensso/timbre         {:mvn/version "5.1.0"}}}}}
+                              com.taoensso/timbre         {:mvn/version "5.1.0"}
+                              buddy/buddy-core            {:mvn/version "1.9.0"}
+                              buddy/buddy-sign            {:mvn/version "3.3.0"}}}}}
