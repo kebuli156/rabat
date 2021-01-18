@@ -35,6 +35,3 @@
            (log-form ~'logger ~(keyword level) ~'tag ~'data ~'&form))
           (~'[logger tag]
            (log-form ~'logger ~(keyword level) ~'tag nil ~'&form))))))
-
-(defprotocol TimbreAppender
-  (timbre-appender [this]))

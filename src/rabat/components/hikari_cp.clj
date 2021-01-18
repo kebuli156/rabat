@@ -2,8 +2,7 @@
   (:require
    [com.stuartsierra.component :as c]
    [hikari-cp.core :as hikari]
-   [rabat.edge.logger :as rbt.edge.logger :refer [info]]
-   [rabat.util.components :as rbt.u.c])
+   [rabat.edge.logger :refer [info]])
   (:import
    [javax.sql DataSource]
    [net.ttddyy.dsproxy QueryInfo]
@@ -54,31 +53,23 @@
   [pool-spec]
   (dissoc pool-spec :password))
 
-(defn- get-logger
-  [m k]
-  (or (get m k)
-      (rbt.u.c/get-satisfied m rbt.edge.logger/Logger)))
-
-(defrecord HikariCP []
+(defrecord HikariCP [pool-spec logger datasource]
   c/Lifecycle
   (start [this]
-    (if (some? (:datasource this))
+    (if (some? datasource)
       this
-      (let [logger     (get-logger this :logger)
-            pool-spec  (:pool-spec this)
-            _          (info logger ::hikari-cp
-                         {:lifecycle :starting
-                          :pool-spec (sanitize-pool-spec pool-spec)})
-            datasource (cond-> (hikari/make-datasource pool-spec)
-                         (some? logger)
-                         (wrap-with-logger logger))]
-        (assoc this :datasource datasource))))
+      (let [_  (info logger ::hikari-cp
+                 {:lifecycle :start
+                  :pool-spec (sanitize-pool-spec pool-spec)})
+            ds (cond-> (hikari/make-datasource pool-spec)
+                 (some? logger)
+                 (wrap-with-logger logger))]
+        (assoc this :datasource ds))))
   (stop [this]
-    (when-let [datasource (:datasource this)]
-      (let [logger (get-logger this :logger)]
-        (info logger ::hikari-cp
-          {:lifecycle :stopping})
-        (hikari/close-datasource (unwrap-logger datasource))))
+    (when (some? datasource)
+      (info logger ::hikari-cp
+        {:lifecycle :stop})
+      (hikari/close-datasource (unwrap-logger datasource)))
     (assoc this :datasource nil)))
 
 (defn hikari-cp

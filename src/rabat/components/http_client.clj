@@ -2,7 +2,7 @@
   (:require
    [clj-http.client :as http-clt]))
 
-(defrecord HttpClient [])
+(defrecord HttpClient [config])
 
 (defn http-client
   ([config]

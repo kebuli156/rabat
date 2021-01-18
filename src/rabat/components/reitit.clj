@@ -1,14 +1,15 @@
 (ns rabat.components.reitit
   (:require
-   [rabat.edge.ring :as rbt.edge.ring]
-   [rabat.util.components :as rbt.u.c]
+   [com.stuartsierra.component :as c]
    [reitit.http :as reit.http]
    [reitit.ring :as reit.ring]))
 
-(defrecord RingRoutes []
-  rbt.edge.ring/ReititRingRoutes
-  (reitit-request-routes [this]
-    ((:routes-fn this) this)))
+(defrecord RingRoutes [config routes-fn routes]
+  c/Lifecycle
+  (start [this]
+    (assoc this :routes (routes-fn this)))
+  (stop [this]
+    (assoc this :routes nil)))
 
 (defn ring-routes
   ([routes-fn]
@@ -16,10 +17,12 @@
   ([routes-fn config]
    (map->RingRoutes {:routes-fn routes-fn :config config})))
 
-(defrecord RingOptions []
-  rbt.edge.ring/ReititRingOptions
-  (reitit-request-options [this]
-    ((:options-fn this) this)))
+(defrecord RingOptions [config options-fn options]
+  c/Lifecycle
+  (start [this]
+    (assoc this :options (options-fn this)))
+  (stop [this]
+    (assoc this :options nil)))
 
 (defn ring-options
   ([options-fn]
@@ -27,28 +30,20 @@
   ([options-fn config]
    (map->RingOptions {:options-fn options-fn :config config})))
 
-(defn- get-ring-options
-  [m k]
-  (or (get m k)
-      (rbt.u.c/get-satisfied m rbt.edge.ring/ReititRingOptions)))
-
-(defrecord RingRouter []
-  rbt.edge.ring/ReititRingRouter
-  (reitit-request-router [this]
-    (let [routes  (into []
-                       (comp
-                         (rbt.u.c/xcollect rbt.edge.ring/ReititRingRoutes)
-                         (map rbt.edge.ring/reitit-request-routes))
-                       this)
-          options (some-> this
-                          (get-ring-options :options)
-                          (rbt.edge.ring/reitit-request-options))
-          ctor-f  (case (:kind this)
-                    :ring reit.ring/router
-                    :http reit.http/router)]
-      (if (empty? options)
-        (ctor-f routes)
-        (ctor-f routes options)))))
+(defrecord RingRouter [kind options router]
+  c/Lifecycle
+  (start [this]
+    (let [routes   (into [] (comp (map val) (keep :routes)) this)
+          -options (:options options)
+          ctor-f   (case kind
+                     :ring reit.ring/router
+                     :http reit.http/router)
+          -router  (if (empty? -options)
+                     (ctor-f routes)
+                     (ctor-f routes -options))]
+      (assoc this :router -router)))
+  (stop [this]
+    (assoc this :router nil)))
 
 (defn ring-router
   ([]
@@ -56,38 +51,25 @@
   ([kind]
    (map->RingRouter {:kind kind})))
 
-(defn- get-ring-router
-  [m k]
-  (or (get m k)
-      (rbt.u.c/get-satisfied m rbt.edge.ring/ReititRingRouter)))
-
-(defn- get-ring-handler
-  [m k]
-  (or (get m k)
-      (rbt.u.c/get-satisfied m rbt.edge.ring/RingHandler)))
-
-(defrecord RingHandler []
-  rbt.edge.ring/RingHandler
-  (request-handler [this]
-    (let [router      (or (some-> this
-                                  (get-ring-router :router)
-                                  (rbt.edge.ring/reitit-request-router))
-                          (throw (ex-info "missing router" {})))
-          def-handler (or (some-> this
-                                  (get-ring-handler :default-handler)
-                                  (rbt.edge.ring/request-handler))
-                          (reit.ring/routes
-                            (reit.ring/create-default-handler)
-                            (reit.ring/redirect-trailing-slash-handler)))
-          options     (some-> this
-                              (get-ring-options :options)
-                              (rbt.edge.ring/reitit-request-options))
-          ctor-f      (case (:kind this)
-                        :ring reit.ring/ring-handler
-                        :http reit.http/ring-handler)]
-      (if (empty? options)
-        (ctor-f router def-handler)
-        (ctor-f router def-handler options)))))
+(defrecord RingHandler [kind router default-handler options handler]
+  c/Lifecycle
+  (start [this]
+    (let [-router          (or (:router router)
+                               (throw (ex-info "missing router" {})))
+          -default-handler (or (:handler default-handler)
+                               (reit.ring/routes
+                                 (reit.ring/create-default-handler)
+                                 (reit.ring/redirect-trailing-slash-handler)))
+          -options         (:options options)
+          ctor-f           (case kind
+                             :ring reit.ring/ring-handler
+                             :http reit.http/ring-handler)
+          -handler         (if (empty? options)
+                             (ctor-f -router -default-handler)
+                             (ctor-f -router -default-handler -options))]
+      (assoc this :handler -handler)))
+  (stop [this]
+    (assoc this :handler nil)))
 
 (defn ring-handler
   ([]

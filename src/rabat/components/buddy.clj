@@ -5,14 +5,12 @@
    [com.stuartsierra.component :as c]
    [rabat.edge.encoder :as rbt.edge.enc]))
 
-(defrecord SHASigner []
+(defrecord SHASigner [config]
   rbt.edge.enc/JwtEncoder
-  (encode [this claims]
-    (let [config (:config this)]
-      (buddy.jwt/sign claims (:secret config) (dissoc config :secret))))
-  (decode [this token]
-    (let [config (:config this)]
-      (buddy.jwt/unsign token (:secret config) (dissoc config :secret)))))
+  (encode [_ claims]
+    (buddy.jwt/sign claims (:secret config) (dissoc config :secret)))
+  (decode [_ token]
+    (buddy.jwt/unsign token (:secret config) (dissoc config :secret))))
 
 (defn sha-signer
   [config]
@@ -28,10 +26,10 @@
         (buddy.keys/private-key path)))
     (buddy.keys/private-key v)))
 
-(defrecord AsymmetricSigner []
+(defrecord AsymmetricSigner [config public-key private-key]
   c/Lifecycle
   (start [this]
-    (let [keypair (-> this :config :keypair)
+    (let [keypair (:keypair config)
           pubkey  (-> keypair :public-key buddy.keys/public-key)
           privkey (-> keypair :private-key private-key)]
       (assoc this :public-key pubkey :private-key privkey)))
@@ -39,14 +37,10 @@
     (assoc this :public-key nil :private-key nil))
 
   rbt.edge.enc/JwtEncoder
-  (encode [this claims]
-    (let [config  (:config this)
-          privkey (:private-key this)]
-      (buddy.jwt/sign claims privkey (dissoc config :keypair))))
-  (decode [this token]
-    (let [config (:config this)
-          pubkey (:public-key this)]
-      (buddy.jwt/unsign token pubkey (dissoc config :keypair)))))
+  (encode [_ claims]
+    (buddy.jwt/sign claims private-key (dissoc config :keypair)))
+  (decode [_ token]
+    (buddy.jwt/unsign token public-key (dissoc config :keypair))))
 
 (defn asymmetric-signer
   [config]
