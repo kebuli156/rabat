@@ -1,6 +1,7 @@
 (ns rabat.components.http-client
   (:require
-   [clj-http.client :as http-clt]))
+   #?(:clj  [clj-http.client :as http-clt]
+      :cljs [cljs-httpc.client :as http-clt])))
 
 (defrecord HttpClient [config])
 
